@@ -1,5 +1,22 @@
 #include "EnvironmentSensorManager.h"
 
+/*
+ * ALTITUDE CALIBRATION:
+ * This module implements a hybrid altitude system that combines GPS and barometric sensors:
+ *
+ * 1. When GPS has a reliable fix (6+ satellites), it:
+ *    - Uses GPS altitude for telemetry (most accurate)
+ *    - Calibrates sea level pressure using GPS altitude + current barometric reading
+ *    - Shares calibrated pressure via mesh advertisements (Feat1 field)
+ *
+ * 2. When GPS is unreliable or unavailable, it:
+ *    - Uses barometric altitude with calibrated pressure (if available)
+ *    - Falls back to standard atmospheric pressure (1013.25 hPa) if never calibrated
+ *
+ * 3. Nearby devices without GPS can use the advertised calibrated pressure for accurate
+ *    barometric altitude calculations, compensating for weather variations.
+ */
+
 #if ENV_PIN_SDA && ENV_PIN_SCL
 #define TELEM_WIRE &Wire1  // Use Wire1 as the I2C bus for Environment Sensors
 #else

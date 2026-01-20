@@ -181,14 +181,32 @@ void CommonCLI::savePrefs() {
 }
 
 uint8_t CommonCLI::buildAdvertData(uint8_t node_type, uint8_t* app_data) {
+  // Get calibrated sea level pressure from sensors (if available)
+  float calibrated_pressure = _sensors->getCalibratedSeaLevelPressure();
+  uint16_t pressure_encoded = 0;
+  if (calibrated_pressure > 0.0f) {
+    // Encode pressure as hPa * 10 (e.g., 1013.25 hPa -> 10133)
+    // This gives us 0.1 hPa precision in a uint16_t
+    pressure_encoded = (uint16_t)(calibrated_pressure * 10.0f);
+  }
+
   if (_prefs->advert_loc_policy == ADVERT_LOC_NONE) {
     AdvertDataBuilder builder(node_type, _prefs->node_name);
+    if (pressure_encoded > 0) {
+      builder.setFeat1(pressure_encoded);
+    }
     return builder.encodeTo(app_data);
   } else if (_prefs->advert_loc_policy == ADVERT_LOC_SHARE) {
     AdvertDataBuilder builder(node_type, _prefs->node_name, _sensors->node_lat, _sensors->node_lon);
+    if (pressure_encoded > 0) {
+      builder.setFeat1(pressure_encoded);
+    }
     return builder.encodeTo(app_data);
   } else {
     AdvertDataBuilder builder(node_type, _prefs->node_name, _prefs->node_lat, _prefs->node_lon);
+    if (pressure_encoded > 0) {
+      builder.setFeat1(pressure_encoded);
+    }
     return builder.encodeTo(app_data);
   }
 }

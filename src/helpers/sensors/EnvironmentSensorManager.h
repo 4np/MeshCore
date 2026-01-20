@@ -59,4 +59,7 @@ public:
   const char* getSettingName(int i) const override;
   const char* getSettingValue(int i) const override;
   bool setSettingValue(const char* name, const char* value) override;
+
+  // Get calibrated sea level pressure (0 if not calibrated)
+  float getCalibratedSeaLevelPressure() const { return calibrated_sea_level_pressure; }
 };

@@ -12,7 +12,7 @@
 //FUTURE: 5..15
 
 #define ADV_LATLON_MASK       0x10
-#define ADV_FEAT1_MASK        0x20   // FUTURE
+#define ADV_FEAT1_MASK        0x20   // Calibrated sea level pressure (hPa * 10)
 #define ADV_FEAT2_MASK        0x40   // FUTURE
 #define ADV_NAME_MASK         0x80
 
@@ -52,7 +52,12 @@ public:
 
   bool isValid() const { return _valid; }
   uint8_t getType() const { return _flags & 0x0F; }
+
+  // Get Feat1 (calibrated sea level pressure encoded as hPa * 10)
+  // To decode: float pressure_hpa = getFeat1() / 10.0f
+  // Returns 0 if not present
   uint16_t getFeat1() const { return _extra1; }
+
   uint16_t getFeat2() const { return _extra2; }
 
   bool hasName() const { return _name[0] != 0; }
@@ -63,6 +68,11 @@ public:
   int32_t getIntLon() const { return _lon; }
   double getLat() const { return ((double)_lat) / 1000000.0; }
   double getLon() const { return ((double)_lon) / 1000000.0; }
+
+  // Get calibrated sea level pressure in hPa (returns 0 if not available)
+  float getCalibratedSeaLevelPressure() const {
+    return (_extra1 > 0) ? (_extra1 / 10.0f) : 0.0f;
+  }
 };
 
 class AdvertTimeHelper {
