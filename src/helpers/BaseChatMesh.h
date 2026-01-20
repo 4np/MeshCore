@@ -9,6 +9,8 @@
 
 #include "ContactInfo.h"
 
+class SensorManager;  // Forward declaration
+
 #define MAX_SEARCH_RESULTS   8
 
 #define MSG_SEND_FAILED       0
@@ -70,6 +72,7 @@ class BaseChatMesh : public mesh::Mesh {
   mesh::Packet* _pendingLoopback;
   uint8_t temp_buf[MAX_TRANS_UNIT];
   ConnectionInfo connections[MAX_CONNECTIONS];
+  SensorManager* _sensors;  // optional, for receiving calibrated pressure from adverts
 
   mesh::Packet* composeMsgPacket(const ContactInfo& recipient, uint32_t timestamp, uint8_t attempt, const char *text, uint32_t& expected_ack);
   void sendAckTo(const ContactInfo& dest, uint32_t ack_hash);
@@ -77,7 +80,7 @@ class BaseChatMesh : public mesh::Mesh {
 protected:
   BaseChatMesh(mesh::Radio& radio, mesh::MillisecondClock& ms, mesh::RNG& rng, mesh::RTCClock& rtc, mesh::PacketManager& mgr, mesh::MeshTables& tables)
       : mesh::Mesh(radio, ms, rng, rtc, mgr, tables)
-  { 
+  {
     num_contacts = 0;
   #ifdef MAX_GROUP_CHANNELS
     memset(channels, 0, sizeof(channels));
@@ -85,6 +88,7 @@ protected:
   #endif
     txt_send_timeout = 0;
     _pendingLoopback = NULL;
+    _sensors = NULL;
     memset(connections, 0, sizeof(connections));
   }
 
@@ -142,6 +146,9 @@ protected:
   void checkConnections();
 
 public:
+  // Set sensor manager to receive calibrated pressure from advertisements
+  void setSensorManager(SensorManager* sensors) { _sensors = sensors; }
+
   mesh::Packet* createSelfAdvert(const char* name);
   mesh::Packet* createSelfAdvert(const char* name, double lat, double lon);
   int  sendMessage(const ContactInfo& recipient, uint32_t timestamp, uint8_t attempt, const char* text, uint32_t& expected_ack, uint32_t& est_timeout);

@@ -24,6 +24,7 @@ public:
   virtual bool setSettingValue(const char* name, const char* value) { return false; }
   virtual LocationProvider* getLocationProvider() { return NULL; }
   virtual float getCalibratedSeaLevelPressure() const { return 0.0f; }
+  virtual void setReceivedCalibratedPressure(float pressure_hpa, uint32_t timestamp_millis) { }
 
   // Helper functions to manage setting by keys (useful in many places ...)
   const char* getSettingByKey(const char* key) {

@@ -1,4 +1,5 @@
 #include <helpers/BaseChatMesh.h>
+#include <helpers/SensorManager.h>
 #include <Utils.h>
 
 #ifndef SERVER_RESPONSE_DELAY
@@ -108,6 +109,15 @@ void BaseChatMesh::onAdvertRecv(mesh::Packet* packet, const mesh::Identity& id, 
   if (!(parser.isValid() && parser.hasName())) {
     MESH_DEBUG_PRINTLN("onAdvertRecv: invalid app_data, or name is missing: len=%d", app_data_len);
     return;
+  }
+
+  // Extract and store calibrated pressure from advertisement (if sensors are available)
+  if (_sensors != NULL) {
+    float calibrated_pressure = parser.getCalibratedSeaLevelPressure();
+    if (calibrated_pressure > 0.0f) {
+      _sensors->setReceivedCalibratedPressure(calibrated_pressure, millis());
+      MESH_DEBUG_PRINTLN("Received calibrated pressure from advert: %.2f hPa", calibrated_pressure);
+    }
   }
 
   ContactInfo* from = NULL;

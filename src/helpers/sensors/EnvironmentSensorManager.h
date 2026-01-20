@@ -28,8 +28,10 @@ protected:
   uint32_t gps_update_interval_sec = 1;  // Default 1 second
 
   // Altitude calibration state
-  float calibrated_sea_level_pressure = 0.0f;  // 0 means not calibrated yet
+  float calibrated_sea_level_pressure = 0.0f;  // 0 means not calibrated yet (from own GPS)
   bool gps_altitude_reliable = false;  // true when GPS has good fix for altitude
+  float received_calibrated_pressure = 0.0f;  // calibrated pressure from other nodes' adverts
+  uint32_t received_pressure_timestamp = 0;  // when we last received valid pressure (millis)
 
   #if ENV_INCLUDE_GPS
   LocationProvider* _location;
@@ -41,6 +43,10 @@ protected:
   bool gpsIsAwake(uint8_t ioPin);
   #endif
   #endif
+
+  // Get best available reference pressure for altitude calculations
+  // Priority: 1) Own GPS calibration, 2) Received calibration, 3) Standard pressure
+  float getBestReferencePressure() const;
 
 
 public:
@@ -62,4 +68,12 @@ public:
 
   // Get calibrated sea level pressure (0 if not calibrated)
   float getCalibratedSeaLevelPressure() const { return calibrated_sea_level_pressure; }
+
+  // Update received calibrated pressure from advertisement
+  void setReceivedCalibratedPressure(float pressure_hpa, uint32_t timestamp_millis) {
+    if (pressure_hpa > 0.0f) {
+      received_calibrated_pressure = pressure_hpa;
+      received_pressure_timestamp = timestamp_millis;
+    }
+  }
 };

@@ -1,20 +1,34 @@
 #include "EnvironmentSensorManager.h"
 
 /*
- * ALTITUDE CALIBRATION:
- * This module implements a hybrid altitude system that combines GPS and barometric sensors:
+ * ALTITUDE CALIBRATION SYSTEM:
+ * This module implements a hybrid altitude system that combines GPS and barometric sensors
+ * with mesh-network calibration sharing.
  *
- * 1. When GPS has a reliable fix (6+ satellites), it:
- *    - Uses GPS altitude for telemetry (most accurate)
- *    - Calibrates sea level pressure using GPS altitude + current barometric reading
- *    - Shares calibrated pressure via mesh advertisements (Feat1 field)
+ * == GPS CALIBRATION (for nodes with GPS) ==
+ * When GPS has a reliable fix (6+ satellites):
+ *  - Uses GPS altitude for telemetry (most accurate)
+ *  - Calibrates sea level pressure using: pressure_sl = pressure_measured / (1 - altitude/44330)^5.255
+ *  - Shares calibrated pressure via mesh advertisements (Feat1 field, encoded as hPa * 10)
  *
- * 2. When GPS is unreliable or unavailable, it:
- *    - Uses barometric altitude with calibrated pressure (if available)
- *    - Falls back to standard atmospheric pressure (1013.25 hPa) if never calibrated
+ * == THREE-TIER BAROMETRIC ALTITUDE PRIORITY ==
+ * When GPS altitude is unavailable/unreliable, barometric sensors use this priority:
  *
- * 3. Nearby devices without GPS can use the advertised calibrated pressure for accurate
- *    barometric altitude calculations, compensating for weather variations.
+ *  Priority 1: Own GPS-calibrated pressure
+ *    - Most accurate, based on this device's GPS fix
+ *    - Used when available (calibrated_sea_level_pressure > 0)
+ *
+ *  Priority 2: Received calibrated pressure from nearby nodes
+ *    - Uses pressure from other nodes' GPS calibrations (received via advertisements)
+ *    - Must be recent (< 1 hour old) to account for weather changes
+ *    - Enables accurate altitude for nodes without GPS
+ *
+ *  Priority 3: Standard atmospheric pressure (1013.25 hPa)
+ *    - Fallback when no calibration available
+ *    - Can have significant errors (50-100m+) due to weather variations
+ *
+ * This creates a mesh-wide calibration network where GPS-equipped nodes help nearby
+ * nodes achieve accurate barometric altitude calculations.
  */
 
 #if ENV_PIN_SDA && ENV_PIN_SCL
@@ -349,6 +363,25 @@ bool EnvironmentSensorManager::begin() {
   return true;
 }
 
+float EnvironmentSensorManager::getBestReferencePressure() const {
+  // Priority 1: Use own GPS-calibrated pressure if available
+  if (calibrated_sea_level_pressure > 0.0f) {
+    return calibrated_sea_level_pressure;
+  }
+
+  // Priority 2: Use received calibrated pressure from nearby nodes if recent (< 1 hour old)
+  if (received_calibrated_pressure > 0.0f) {
+    uint32_t age_millis = millis() - received_pressure_timestamp;
+    const uint32_t MAX_AGE_MILLIS = 60 * 60 * 1000;  // 1 hour
+    if (age_millis < MAX_AGE_MILLIS) {
+      return received_calibrated_pressure;
+    }
+  }
+
+  // Priority 3: Fall back to standard atmospheric pressure
+  return TELEM_STANDARD_SEALEVELPRESSURE_HPA;
+}
+
 bool EnvironmentSensorManager::querySensors(uint8_t requester_permissions, CayenneLPP& telemetry) {
   next_available_channel = TELEM_CHANNEL_SELF + 1;
 
@@ -379,10 +412,7 @@ bool EnvironmentSensorManager::querySensors(uint8_t requester_permissions, Cayen
         telemetry.addBarometricPressure(TELEM_CHANNEL_SELF, BME680.pressure / 100);
         // Only report barometric altitude if GPS altitude is not reliable
         if (!gps_altitude_reliable) {
-          // Use calibrated pressure if available, otherwise use standard atmospheric pressure
-          float reference_pressure = (calibrated_sea_level_pressure > 0.0f)
-                                     ? calibrated_sea_level_pressure
-                                     : TELEM_STANDARD_SEALEVELPRESSURE_HPA;
+          float reference_pressure = getBestReferencePressure();
           telemetry.addAltitude(TELEM_CHANNEL_SELF, 44330.0 * (1.0 - pow((BME680.pressure / 100) / reference_pressure, 0.1903)));
         }
         telemetry.addAnalogInput(next_available_channel, BME680.gas_resistance);
@@ -399,10 +429,7 @@ bool EnvironmentSensorManager::querySensors(uint8_t requester_permissions, Cayen
         telemetry.addBarometricPressure(TELEM_CHANNEL_SELF, BME280.readPressure()/100);
         // Only report barometric altitude if GPS altitude is not reliable
         if (!gps_altitude_reliable) {
-          // Use calibrated pressure if available, otherwise use standard atmospheric pressure
-          float reference_pressure = (calibrated_sea_level_pressure > 0.0f)
-                                     ? calibrated_sea_level_pressure
-                                     : TELEM_STANDARD_SEALEVELPRESSURE_HPA;
+          float reference_pressure = getBestReferencePressure();
           telemetry.addAltitude(TELEM_CHANNEL_SELF, BME280.readAltitude(reference_pressure));
         }
       }
@@ -415,10 +442,7 @@ bool EnvironmentSensorManager::querySensors(uint8_t requester_permissions, Cayen
       telemetry.addBarometricPressure(TELEM_CHANNEL_SELF, BMP280.readPressure()/100);
       // Only report barometric altitude if GPS altitude is not reliable
       if (!gps_altitude_reliable) {
-        // Use calibrated pressure if available, otherwise use standard atmospheric pressure
-        float reference_pressure = (calibrated_sea_level_pressure > 0.0f)
-                                   ? calibrated_sea_level_pressure
-                                   : TELEM_STANDARD_SEALEVELPRESSURE_HPA;
+        float reference_pressure = getBestReferencePressure();
         telemetry.addAltitude(TELEM_CHANNEL_SELF, BMP280.readAltitude(reference_pressure));
       }
     }
@@ -521,10 +545,7 @@ bool EnvironmentSensorManager::querySensors(uint8_t requester_permissions, Cayen
         telemetry.addBarometricPressure(TELEM_CHANNEL_SELF, BMP085.readPressure() / 100);
         // Only report barometric altitude if GPS altitude is not reliable
         if (!gps_altitude_reliable) {
-          // Use calibrated pressure if available, otherwise use standard atmospheric pressure
-          float reference_pressure = (calibrated_sea_level_pressure > 0.0f)
-                                     ? calibrated_sea_level_pressure
-                                     : TELEM_STANDARD_SEALEVELPRESSURE_HPA;
+          float reference_pressure = getBestReferencePressure();
           telemetry.addAltitude(TELEM_CHANNEL_SELF, BMP085.readAltitude(reference_pressure * 100));
         }
     }
