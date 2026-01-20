@@ -6,17 +6,18 @@
 #define TELEM_WIRE &Wire  // Use default I2C bus for Environment Sensors
 #endif
 
+// Standard atmospheric pressure at sea level (used as default/fallback for altitude calculations)
+#define TELEM_STANDARD_SEALEVELPRESSURE_HPA (1013.25)
+
 #ifdef ENV_INCLUDE_BME680
 #ifndef TELEM_BME680_ADDRESS
 #define TELEM_BME680_ADDRESS 0x76
 #endif
-#define TELEM_BME680_SEALEVELPRESSURE_HPA (1013.25)
 #include <Adafruit_BME680.h>
 static Adafruit_BME680 BME680;
 #endif
 
 #ifdef ENV_INCLUDE_BMP085
-#define TELEM_BMP085_SEALEVELPRESSURE_HPA (1013.25)
 #include <Adafruit_BMP085.h>
 static Adafruit_BMP085 BMP085;
 #endif
@@ -31,7 +32,6 @@ static Adafruit_AHTX0 AHTX0;
 #ifndef TELEM_BME280_ADDRESS
 #define TELEM_BME280_ADDRESS    0x76      // BME280 environmental sensor I2C address
 #endif
-#define TELEM_BME280_SEALEVELPRESSURE_HPA (1013.25)    // Athmospheric pressure at sea level
 #include <Adafruit_BME280.h>
 static Adafruit_BME280 BME280;
 #endif
@@ -40,7 +40,6 @@ static Adafruit_BME280 BME280;
 #ifndef TELEM_BMP280_ADDRESS
 #define TELEM_BMP280_ADDRESS    0x76      // BMP280 environmental sensor I2C address
 #endif
-#define TELEM_BMP280_SEALEVELPRESSURE_HPA (1013.25)    // Athmospheric pressure at sea level
 #include <Adafruit_BMP280.h>
 static Adafruit_BMP280 BMP280;
 #endif
@@ -336,8 +335,12 @@ bool EnvironmentSensorManager::begin() {
 bool EnvironmentSensorManager::querySensors(uint8_t requester_permissions, CayenneLPP& telemetry) {
   next_available_channel = TELEM_CHANNEL_SELF + 1;
 
-  if (requester_permissions & TELEM_PERM_LOCATION && gps_active) {
-    telemetry.addGPS(TELEM_CHANNEL_SELF, node_lat, node_lon, node_altitude); // allow lat/lon via telemetry even if no GPS is detected
+  // Report GPS altitude only if GPS has good accuracy (reliable fix with 6+ satellites)
+  if (requester_permissions & TELEM_PERM_LOCATION && gps_active && gps_altitude_reliable) {
+    telemetry.addGPS(TELEM_CHANNEL_SELF, node_lat, node_lon, node_altitude);
+  } else if (requester_permissions & TELEM_PERM_LOCATION && gps_active) {
+    // GPS active but not reliable - report lat/lon only, no altitude
+    telemetry.addGPS(TELEM_CHANNEL_SELF, node_lat, node_lon, 0);
   }
 
   if (requester_permissions & TELEM_PERM_ENVIRONMENT) {
@@ -357,7 +360,14 @@ bool EnvironmentSensorManager::querySensors(uint8_t requester_permissions, Cayen
         telemetry.addTemperature(TELEM_CHANNEL_SELF, BME680.temperature);
         telemetry.addRelativeHumidity(TELEM_CHANNEL_SELF, BME680.humidity);
         telemetry.addBarometricPressure(TELEM_CHANNEL_SELF, BME680.pressure / 100);
-        telemetry.addAltitude(TELEM_CHANNEL_SELF, 44330.0 * (1.0 - pow((BME680.pressure / 100) / TELEM_BME680_SEALEVELPRESSURE_HPA, 0.1903)));
+        // Only report barometric altitude if GPS altitude is not reliable
+        if (!gps_altitude_reliable) {
+          // Use calibrated pressure if available, otherwise use standard atmospheric pressure
+          float reference_pressure = (calibrated_sea_level_pressure > 0.0f)
+                                     ? calibrated_sea_level_pressure
+                                     : TELEM_STANDARD_SEALEVELPRESSURE_HPA;
+          telemetry.addAltitude(TELEM_CHANNEL_SELF, 44330.0 * (1.0 - pow((BME680.pressure / 100) / reference_pressure, 0.1903)));
+        }
         telemetry.addAnalogInput(next_available_channel, BME680.gas_resistance);
         next_available_channel++;
       }
@@ -370,7 +380,14 @@ bool EnvironmentSensorManager::querySensors(uint8_t requester_permissions, Cayen
         telemetry.addTemperature(TELEM_CHANNEL_SELF, BME280.readTemperature());
         telemetry.addRelativeHumidity(TELEM_CHANNEL_SELF, BME280.readHumidity());
         telemetry.addBarometricPressure(TELEM_CHANNEL_SELF, BME280.readPressure()/100);
-        telemetry.addAltitude(TELEM_CHANNEL_SELF, BME280.readAltitude(TELEM_BME280_SEALEVELPRESSURE_HPA));
+        // Only report barometric altitude if GPS altitude is not reliable
+        if (!gps_altitude_reliable) {
+          // Use calibrated pressure if available, otherwise use standard atmospheric pressure
+          float reference_pressure = (calibrated_sea_level_pressure > 0.0f)
+                                     ? calibrated_sea_level_pressure
+                                     : TELEM_STANDARD_SEALEVELPRESSURE_HPA;
+          telemetry.addAltitude(TELEM_CHANNEL_SELF, BME280.readAltitude(reference_pressure));
+        }
       }
     }
     #endif
@@ -379,7 +396,14 @@ bool EnvironmentSensorManager::querySensors(uint8_t requester_permissions, Cayen
     if (BMP280_initialized) {
       telemetry.addTemperature(TELEM_CHANNEL_SELF, BMP280.readTemperature());
       telemetry.addBarometricPressure(TELEM_CHANNEL_SELF, BMP280.readPressure()/100);
-      telemetry.addAltitude(TELEM_CHANNEL_SELF, BMP280.readAltitude(TELEM_BMP280_SEALEVELPRESSURE_HPA));
+      // Only report barometric altitude if GPS altitude is not reliable
+      if (!gps_altitude_reliable) {
+        // Use calibrated pressure if available, otherwise use standard atmospheric pressure
+        float reference_pressure = (calibrated_sea_level_pressure > 0.0f)
+                                   ? calibrated_sea_level_pressure
+                                   : TELEM_STANDARD_SEALEVELPRESSURE_HPA;
+        telemetry.addAltitude(TELEM_CHANNEL_SELF, BMP280.readAltitude(reference_pressure));
+      }
     }
     #endif
 
@@ -478,7 +502,14 @@ bool EnvironmentSensorManager::querySensors(uint8_t requester_permissions, Cayen
     if (BMP085_initialized) {
         telemetry.addTemperature(TELEM_CHANNEL_SELF, BMP085.readTemperature());
         telemetry.addBarometricPressure(TELEM_CHANNEL_SELF, BMP085.readPressure() / 100);
-        telemetry.addAltitude(TELEM_CHANNEL_SELF, BMP085.readAltitude(TELEM_BMP085_SEALEVELPRESSURE_HPA * 100));
+        // Only report barometric altitude if GPS altitude is not reliable
+        if (!gps_altitude_reliable) {
+          // Use calibrated pressure if available, otherwise use standard atmospheric pressure
+          float reference_pressure = (calibrated_sea_level_pressure > 0.0f)
+                                     ? calibrated_sea_level_pressure
+                                     : TELEM_STANDARD_SEALEVELPRESSURE_HPA;
+          telemetry.addAltitude(TELEM_CHANNEL_SELF, BMP085.readAltitude(reference_pressure * 100));
+        }
     }
     #endif
 
@@ -717,6 +748,48 @@ void EnvironmentSensorManager::loop() {
       MESH_DEBUG_PRINTLN("lat %f lon %f", node_lat, node_lon);
       node_altitude = ((double)_location->getAltitude()) / 1000.0;
       MESH_DEBUG_PRINTLN("lat %f lon %f alt %f", node_lat, node_lon, node_altitude);
+
+      // Check if GPS has good accuracy (6+ satellites for reliable altitude)
+      int sat_count = _location->satellitesCount();
+      gps_altitude_reliable = (sat_count >= 6);
+
+      // Calibrate sea level pressure if GPS altitude is reliable and we have barometric sensor
+      if (gps_altitude_reliable && node_altitude != 0.0) {
+        float current_pressure = 0.0f;
+
+        #if ENV_INCLUDE_BME680
+        if (BME680_initialized && BME680.performReading()) {
+          current_pressure = BME680.pressure / 100.0f; // Convert Pa to hPa
+        }
+        #endif
+        #if ENV_INCLUDE_BME280
+        if (current_pressure == 0.0f && BME280_initialized) {
+          current_pressure = BME280.readPressure() / 100.0f;
+        }
+        #endif
+        #if ENV_INCLUDE_BMP280
+        if (current_pressure == 0.0f && BMP280_initialized) {
+          current_pressure = BMP280.readPressure() / 100.0f;
+        }
+        #endif
+        #if ENV_INCLUDE_BMP085
+        if (current_pressure == 0.0f && BMP085_initialized) {
+          current_pressure = BMP085.readPressure() / 100.0f;
+        }
+        #endif
+        #if ENV_INCLUDE_LPS22HB
+        if (current_pressure == 0.0f && LPS22HB_initialized) {
+          current_pressure = BARO.readPressure() * 10.0f; // Convert kPa to hPa
+        }
+        #endif
+
+        if (current_pressure > 0.0f) {
+          // Calculate sea level pressure using barometric formula
+          calibrated_sea_level_pressure = current_pressure / pow(1.0 - (node_altitude / 44330.0), 5.255);
+          MESH_DEBUG_PRINTLN("Calibrated sea level pressure: %.2f hPa (sats: %d, alt: %.1fm)",
+                           calibrated_sea_level_pressure, sat_count, node_altitude);
+        }
+      }
     }
     #else
     if (_location->isValid()) {
@@ -725,6 +798,48 @@ void EnvironmentSensorManager::loop() {
       MESH_DEBUG_PRINTLN("lat %f lon %f", node_lat, node_lon);
       node_altitude = ((double)_location->getAltitude()) / 1000.0;
       MESH_DEBUG_PRINTLN("lat %f lon %f alt %f", node_lat, node_lon, node_altitude);
+
+      // Check if GPS has good accuracy (6+ satellites for reliable altitude)
+      int sat_count = _location->satellitesCount();
+      gps_altitude_reliable = (sat_count >= 6);
+
+      // Calibrate sea level pressure if GPS altitude is reliable and we have barometric sensor
+      if (gps_altitude_reliable && node_altitude != 0.0) {
+        float current_pressure = 0.0f;
+
+        #if ENV_INCLUDE_BME680
+        if (BME680_initialized && BME680.performReading()) {
+          current_pressure = BME680.pressure / 100.0f; // Convert Pa to hPa
+        }
+        #endif
+        #if ENV_INCLUDE_BME280
+        if (current_pressure == 0.0f && BME280_initialized) {
+          current_pressure = BME280.readPressure() / 100.0f;
+        }
+        #endif
+        #if ENV_INCLUDE_BMP280
+        if (current_pressure == 0.0f && BMP280_initialized) {
+          current_pressure = BMP280.readPressure() / 100.0f;
+        }
+        #endif
+        #if ENV_INCLUDE_BMP085
+        if (current_pressure == 0.0f && BMP085_initialized) {
+          current_pressure = BMP085.readPressure() / 100.0f;
+        }
+        #endif
+        #if ENV_INCLUDE_LPS22HB
+        if (current_pressure == 0.0f && LPS22HB_initialized) {
+          current_pressure = BARO.readPressure() * 10.0f; // Convert kPa to hPa
+        }
+        #endif
+
+        if (current_pressure > 0.0f) {
+          // Calculate sea level pressure using barometric formula
+          calibrated_sea_level_pressure = current_pressure / pow(1.0 - (node_altitude / 44330.0), 5.255);
+          MESH_DEBUG_PRINTLN("Calibrated sea level pressure: %.2f hPa (sats: %d, alt: %.1fm)",
+                           calibrated_sea_level_pressure, sat_count, node_altitude);
+        }
+      }
     }
     #endif
     }

@@ -27,6 +27,10 @@ protected:
   bool gps_active = false;
   uint32_t gps_update_interval_sec = 1;  // Default 1 second
 
+  // Altitude calibration state
+  float calibrated_sea_level_pressure = 0.0f;  // 0 means not calibrated yet
+  bool gps_altitude_reliable = false;  // true when GPS has good fix for altitude
+
   #if ENV_INCLUDE_GPS
   LocationProvider* _location;
   void start_gps();
