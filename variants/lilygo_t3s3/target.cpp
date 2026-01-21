@@ -1,5 +1,7 @@
 #include <Arduino.h>
 #include "target.h"
+#include <helpers/ArduinoHelpers.h>
+#include <helpers/RTCClockHelper.h>
 
 ESP32Board board;
 
@@ -7,8 +9,8 @@ static SPIClass spi;
 RADIO_CLASS radio = new Module(P_LORA_NSS, P_LORA_DIO_1, P_LORA_RESET, P_LORA_BUSY, spi);
 WRAPPER_CLASS radio_driver(radio, board);
 
-ESP32RTCClock fallback_clock;
-AutoDiscoverRTCClock rtc_clock(fallback_clock);
+// Setup RTC clock with automatic peer synchronization
+SETUP_RTC_WITH_PEER_SYNC(ESP32RTCClock, fallback_clock)
 SensorManager sensors;
 
 #ifdef DISPLAY_CLASS
@@ -21,8 +23,7 @@ SensorManager sensors;
 #endif
 
 bool radio_init() {
-  fallback_clock.begin();
-  rtc_clock.begin(Wire);
+  auto_rtc.begin(Wire);
   
   return radio.std_init(&spi);
 }

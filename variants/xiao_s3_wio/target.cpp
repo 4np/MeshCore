@@ -1,5 +1,7 @@
 #include <Arduino.h>
 #include "target.h"
+#include <helpers/ArduinoHelpers.h>
+#include <helpers/RTCClockHelper.h>
 
 XiaoS3WIOBoard board;
 
@@ -12,8 +14,8 @@ XiaoS3WIOBoard board;
 
 WRAPPER_CLASS radio_driver(radio, board);
 
-ESP32RTCClock fallback_clock;
-AutoDiscoverRTCClock rtc_clock(fallback_clock);
+// Setup RTC clock with automatic peer synchronization
+SETUP_RTC_WITH_PEER_SYNC(ESP32RTCClock, fallback_clock)
 EnvironmentSensorManager sensors;
 
 #ifdef DISPLAY_CLASS
@@ -22,8 +24,7 @@ EnvironmentSensorManager sensors;
 #endif
 
 bool radio_init() {
-  fallback_clock.begin();
-  rtc_clock.begin(Wire);
+  auto_rtc.begin(Wire);
   pinMode(21, INPUT);
   pinMode(48, OUTPUT);
 

@@ -5,7 +5,7 @@
 #include <helpers/radiolib/RadioLibWrappers.h>
 #include <WioTrackerL1Board.h>
 #include <helpers/radiolib/CustomSX1262Wrapper.h>
-#include <helpers/AutoDiscoverRTCClock.h>
+#include <helpers/PeerSyncRTCClock.h>
 #include <helpers/ArduinoHelpers.h>
 #include <helpers/sensors/EnvironmentSensorManager.h>
 #ifdef DISPLAY_CLASS
@@ -20,7 +20,7 @@
 
 extern WioTrackerL1Board board;
 extern WRAPPER_CLASS radio_driver;
-extern AutoDiscoverRTCClock rtc_clock;
+extern PeerSyncRTCClock rtc_clock;
 extern EnvironmentSensorManager sensors;
 #ifdef DISPLAY_CLASS
   extern DISPLAY_CLASS display;

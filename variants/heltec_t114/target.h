@@ -5,7 +5,7 @@
 #include <helpers/radiolib/RadioLibWrappers.h>
 #include <T114Board.h>
 #include <helpers/radiolib/CustomSX1262Wrapper.h>
-#include <helpers/AutoDiscoverRTCClock.h>
+#include <helpers/PeerSyncRTCClock.h>
 #include <helpers/SensorManager.h>
 #include <helpers/sensors/LocationProvider.h>
 
@@ -39,7 +39,7 @@ public:
 
 extern T114Board board;
 extern WRAPPER_CLASS radio_driver;
-extern AutoDiscoverRTCClock rtc_clock;
+extern PeerSyncRTCClock rtc_clock;
 extern T114SensorManager sensors;
 
 #ifdef DISPLAY_CLASS

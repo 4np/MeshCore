@@ -2,6 +2,7 @@
 
 #include <Arduino.h>
 #include <helpers/ArduinoHelpers.h>
+#include <helpers/RTCClockHelper.h>
 #include <helpers/sensors/MicroNMEALocationProvider.h>
 
 NanoG2Ultra board;
@@ -10,8 +11,8 @@ RADIO_CLASS radio = new Module(P_LORA_NSS, P_LORA_DIO_1, P_LORA_RESET, P_LORA_BU
 
 WRAPPER_CLASS radio_driver(radio, board);
 
-VolatileRTCClock fallback_clock;
-AutoDiscoverRTCClock rtc_clock(fallback_clock);
+// Setup RTC clock with automatic peer synchronization
+SETUP_RTC_WITH_PEER_SYNC(VolatileRTCClock, fallback_clock)
 MicroNMEALocationProvider nmea = MicroNMEALocationProvider(Serial1);
 NanoG2UltraSensorManager sensors = NanoG2UltraSensorManager(nmea);
 
@@ -21,7 +22,7 @@ MomentaryButton user_btn(PIN_USER_BTN, 1000, true);
 #endif
 
 bool radio_init() {
-  rtc_clock.begin(Wire);
+  auto_rtc.begin(Wire);
   return radio.std_init(&SPI);
 }
 

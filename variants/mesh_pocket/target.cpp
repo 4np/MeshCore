@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include "target.h"
 #include <helpers/ArduinoHelpers.h>
+#include <helpers/RTCClockHelper.h>
 #include <helpers/sensors/MicroNMEALocationProvider.h>
 
 HeltecMeshPocket board;
@@ -11,8 +12,8 @@ WRAPPER_CLASS radio_driver(radio, board);
 
 SensorManager sensors = SensorManager();
 
-VolatileRTCClock fallback_clock;
-AutoDiscoverRTCClock rtc_clock(fallback_clock);
+// Setup RTC clock with automatic peer synchronization
+SETUP_RTC_WITH_PEER_SYNC(VolatileRTCClock, fallback_clock)
 
 #ifdef DISPLAY_CLASS
   DISPLAY_CLASS display;
@@ -20,6 +21,7 @@ AutoDiscoverRTCClock rtc_clock(fallback_clock);
 #endif
 
 bool radio_init() {
+  auto_rtc.begin(Wire);
   return radio.std_init(&SPI);
 }
 

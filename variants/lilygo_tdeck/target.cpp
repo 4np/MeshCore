@@ -1,5 +1,7 @@
 #include <Arduino.h>
 #include "target.h"
+#include <helpers/ArduinoHelpers.h>
+#include <helpers/RTCClockHelper.h>
 
 TDeckBoard board;
 
@@ -12,8 +14,8 @@ TDeckBoard board;
 
 WRAPPER_CLASS radio_driver(radio, board);
 
-ESP32RTCClock fallback_clock;
-AutoDiscoverRTCClock rtc_clock(fallback_clock);
+// Setup RTC clock with automatic peer synchronization
+SETUP_RTC_WITH_PEER_SYNC(ESP32RTCClock, fallback_clock)
 MicroNMEALocationProvider gps(Serial1, &rtc_clock);
 EnvironmentSensorManager sensors(gps);
 
@@ -23,8 +25,7 @@ EnvironmentSensorManager sensors(gps);
 #endif
 
 bool radio_init() {
-  fallback_clock.begin();
-  rtc_clock.begin(Wire);
+  auto_rtc.begin(Wire);
   Wire.begin(18, 8);
 
 #if defined(P_LORA_SCLK)

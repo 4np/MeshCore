@@ -1,5 +1,7 @@
 #include <Arduino.h>
 #include "target.h"
+#include <helpers/ArduinoHelpers.h>
+#include <helpers/RTCClockHelper.h>
 
 TBeamBoard board;
 
@@ -12,8 +14,8 @@ TBeamBoard board;
 
 WRAPPER_CLASS radio_driver(radio, board);
 
-ESP32RTCClock fallback_clock;
-AutoDiscoverRTCClock rtc_clock(fallback_clock);
+// Setup RTC clock with automatic peer synchronization
+SETUP_RTC_WITH_PEER_SYNC(ESP32RTCClock, fallback_clock)
 
 #if ENV_INCLUDE_GPS
   #include <helpers/sensors/MicroNMEALocationProvider.h>
@@ -29,8 +31,7 @@ AutoDiscoverRTCClock rtc_clock(fallback_clock);
 #endif
 
 bool radio_init() {
-  fallback_clock.begin();
-  rtc_clock.begin(Wire);
+  auto_rtc.begin(Wire);
 
 #if defined(P_LORA_SCLK)
   return radio.std_init(&spi);

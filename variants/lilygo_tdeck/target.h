@@ -5,7 +5,7 @@
 #include <helpers/radiolib/RadioLibWrappers.h>
 #include <helpers/radiolib/CustomSX1262Wrapper.h>
 #include <TDeckBoard.h>
-#include <helpers/AutoDiscoverRTCClock.h>
+#include <helpers/PeerSyncRTCClock.h>
 #include <helpers/SensorManager.h>
 #ifdef DISPLAY_CLASS
   #include <helpers/ui/ST7789LCDDisplay.h>
@@ -16,7 +16,7 @@
 
 extern TDeckBoard board;
 extern WRAPPER_CLASS radio_driver;
-extern AutoDiscoverRTCClock rtc_clock;
+extern PeerSyncRTCClock rtc_clock;
 extern EnvironmentSensorManager sensors;
 
 #ifdef DISPLAY_CLASS

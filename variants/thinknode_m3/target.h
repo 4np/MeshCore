@@ -8,7 +8,7 @@
 #include <helpers/ArduinoHelpers.h>
 #include <helpers/sensors/EnvironmentSensorManager.h>
 #include <helpers/sensors/LocationProvider.h>
-#include <helpers/AutoDiscoverRTCClock.h>
+#include <helpers/PeerSyncRTCClock.h>
 #ifdef DISPLAY_CLASS
   #include "NullDisplayDriver.h"
 #endif
@@ -19,7 +19,7 @@
 
 extern ThinknodeM3Board board;
 extern WRAPPER_CLASS radio_driver;
-extern AutoDiscoverRTCClock rtc_clock;
+extern PeerSyncRTCClock rtc_clock;
 extern EnvironmentSensorManager sensors;
 
 bool radio_init();

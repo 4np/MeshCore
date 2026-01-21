@@ -1,5 +1,7 @@
 #include <Arduino.h>
 #include "target.h"
+#include <helpers/ArduinoHelpers.h>
+#include <helpers/RTCClockHelper.h>
 
 ThinknodeM2Board board;
 
@@ -12,8 +14,8 @@ ThinknodeM2Board board;
 
 WRAPPER_CLASS radio_driver(radio, board);
 
-ESP32RTCClock fallback_clock;
-AutoDiscoverRTCClock rtc_clock(fallback_clock);
+// Setup RTC clock with automatic peer synchronization
+SETUP_RTC_WITH_PEER_SYNC(ESP32RTCClock, fallback_clock)
 SensorManager sensors;
 
 #ifdef DISPLAY_CLASS
@@ -22,8 +24,7 @@ SensorManager sensors;
 #endif
 
 bool radio_init() {
-  fallback_clock.begin();
-  rtc_clock.begin(Wire);
+  auto_rtc.begin(Wire);
   pinMode(21, INPUT);
   pinMode(48, OUTPUT);
   #if defined(P_LORA_SCLK)
