@@ -1,5 +1,7 @@
 #include <Arduino.h>
 #include "target.h"
+#include <helpers/ArduinoHelpers.h>
+#include <helpers/RTCClockHelper.h>
 #include <helpers/sensors/MicroNMEALocationProvider.h>
 
 ThinknodeM5Board board;
@@ -13,8 +15,8 @@ ThinknodeM5Board board;
 
 WRAPPER_CLASS radio_driver(radio, board);
 
-ESP32RTCClock fallback_clock;
-AutoDiscoverRTCClock rtc_clock(fallback_clock);
+// Setup RTC clock with automatic peer synchronization
+SETUP_RTC_WITH_PEER_SYNC(ESP32RTCClock, fallback_clock)
 
 #ifdef ENV_INCLUDE_GPS
 MicroNMEALocationProvider nmea = MicroNMEALocationProvider(Serial1, &rtc_clock);
@@ -29,8 +31,7 @@ EnvironmentSensorManager sensors = EnvironmentSensorManager();
 #endif
 
 bool radio_init() {
-  fallback_clock.begin();
-  rtc_clock.begin(Wire);
+  auto_rtc.begin(Wire);
   pinMode(P_LORA_EN, OUTPUT);
   digitalWrite(P_LORA_EN, HIGH);
   #if defined(P_LORA_SCLK)

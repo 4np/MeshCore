@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include "target.h"
 #include <helpers/ArduinoHelpers.h>
+#include <helpers/RTCClockHelper.h>
 
 #ifdef DISPLAY_CLASS
   DISPLAY_CLASS display;
@@ -12,13 +13,13 @@ RADIO_CLASS radio = new Module(P_LORA_NSS, P_LORA_DIO_1, P_LORA_RESET, P_LORA_BU
 
 WRAPPER_CLASS radio_driver(radio, board);
 
-VolatileRTCClock fallback_clock;
-AutoDiscoverRTCClock rtc_clock(fallback_clock);
+// Setup RTC clock with automatic peer synchronization
+SETUP_RTC_WITH_PEER_SYNC(VolatileRTCClock, fallback_clock)
 
 EnvironmentSensorManager sensors;
 
 bool radio_init() {
-  rtc_clock.begin(Wire);
+  auto_rtc.begin(Wire);
 
   return radio.std_init(&SPI);
 }

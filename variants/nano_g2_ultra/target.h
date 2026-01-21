@@ -4,7 +4,7 @@
 #include "nano-g2.h"
 
 #include <RadioLib.h>
-#include <helpers/AutoDiscoverRTCClock.h>
+#include <helpers/PeerSyncRTCClock.h>
 #include <helpers/SensorManager.h>
 #include <helpers/radiolib/CustomSX1262Wrapper.h>
 #include <helpers/radiolib/RadioLibWrappers.h>
@@ -34,7 +34,7 @@ public:
 
 extern NanoG2Ultra board;
 extern WRAPPER_CLASS radio_driver;
-extern AutoDiscoverRTCClock rtc_clock;
+extern PeerSyncRTCClock rtc_clock;
 extern NanoG2UltraSensorManager sensors;
 
 #ifdef DISPLAY_CLASS

@@ -6,7 +6,7 @@
 //#include <helpers/ESP32Board.h>
 #include <ThinknodeM5Board.h>
 #include <helpers/radiolib/CustomSX1262Wrapper.h>
-#include <helpers/AutoDiscoverRTCClock.h>
+#include <helpers/PeerSyncRTCClock.h>
 #include <helpers/SensorManager.h>
 #include <helpers/sensors/EnvironmentSensorManager.h>
 #include <helpers/sensors/LocationProvider.h>
@@ -17,7 +17,7 @@
 
 extern ThinknodeM5Board board;
 extern WRAPPER_CLASS radio_driver;
-extern AutoDiscoverRTCClock rtc_clock;
+extern PeerSyncRTCClock rtc_clock;
 extern EnvironmentSensorManager sensors;
 extern PCA9557 expander;
 

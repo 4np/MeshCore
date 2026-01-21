@@ -5,7 +5,7 @@
 #include <helpers/radiolib/RadioLibWrappers.h>
 #include <HeltecE213Board.h>
 #include <helpers/radiolib/CustomSX1262Wrapper.h>
-#include <helpers/AutoDiscoverRTCClock.h>
+#include <helpers/PeerSyncRTCClock.h>
 #include <helpers/SensorManager.h>
 #ifdef DISPLAY_CLASS
 #include <helpers/ui/E213Display.h>
@@ -14,7 +14,7 @@
 
 extern HeltecE213Board board;
 extern WRAPPER_CLASS radio_driver;
-extern AutoDiscoverRTCClock rtc_clock;
+extern PeerSyncRTCClock rtc_clock;
 extern SensorManager sensors;
 
 #ifdef DISPLAY_CLASS

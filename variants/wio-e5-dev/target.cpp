@@ -25,7 +25,7 @@ SensorManager sensors;
 #endif
 
 bool radio_init() {
-//  rtc_clock.begin(Wire);
+//  auto_rtc.begin(Wire);
   
 // #ifdef SX126X_DIO3_TCXO_VOLTAGE
 //   float tcxo = SX126X_DIO3_TCXO_VOLTAGE;

@@ -1,5 +1,7 @@
 #include <Arduino.h>
 #include "target.h"
+#include <helpers/ArduinoHelpers.h>
+#include <helpers/RTCClockHelper.h>
 #include <helpers/sensors/MicroNMEALocationProvider.h>
 
 ThinknodeM3Board board;
@@ -8,8 +10,8 @@ RADIO_CLASS radio = new Module(P_LORA_NSS, P_LORA_DIO_1, P_LORA_RESET, P_LORA_BU
 
 WRAPPER_CLASS radio_driver(radio, board);
 
-VolatileRTCClock fallback_clock;
-AutoDiscoverRTCClock rtc_clock(fallback_clock);
+// Setup RTC clock with automatic peer synchronization
+SETUP_RTC_WITH_PEER_SYNC(VolatileRTCClock, fallback_clock)
 #ifdef ENV_INCLUDE_GPS
 MicroNMEALocationProvider nmea = MicroNMEALocationProvider(Serial1);
 EnvironmentSensorManager sensors = EnvironmentSensorManager(nmea);
@@ -48,7 +50,7 @@ static const Module::RfSwitchMode_t rfswitch_table[] = {
 #endif
 
 bool radio_init() {
-  rtc_clock.begin(Wire);
+  auto_rtc.begin(Wire);
   
 #ifdef LR11X0_DIO3_TCXO_VOLTAGE
   float tcxo = LR11X0_DIO3_TCXO_VOLTAGE;

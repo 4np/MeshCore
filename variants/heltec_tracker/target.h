@@ -5,7 +5,7 @@
 #include <helpers/radiolib/RadioLibWrappers.h>
 #include <../heltec_v3/HeltecV3Board.h>
 #include <helpers/radiolib/CustomSX1262Wrapper.h>
-#include <helpers/AutoDiscoverRTCClock.h>
+#include <helpers/PeerSyncRTCClock.h>
 #include <helpers/SensorManager.h>
 #include <helpers/sensors/LocationProvider.h>
 #ifdef DISPLAY_CLASS
@@ -32,7 +32,7 @@ public:
 
 extern HeltecV3Board board;
 extern WRAPPER_CLASS radio_driver;
-extern AutoDiscoverRTCClock rtc_clock;
+extern PeerSyncRTCClock rtc_clock;
 extern HWTSensorManager sensors;
 
 #ifdef DISPLAY_CLASS

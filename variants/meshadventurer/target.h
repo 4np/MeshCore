@@ -6,7 +6,7 @@
 #include <helpers/MeshadventurerBoard.h>
 #include <helpers/radiolib/CustomSX1262Wrapper.h>
 #include <helpers/radiolib/CustomSX1268Wrapper.h>
-#include <helpers/AutoDiscoverRTCClock.h>
+#include <helpers/PeerSyncRTCClock.h>
 #include <helpers/SensorManager.h>
 #include <helpers/sensors/LocationProvider.h>
 #ifdef DISPLAY_CLASS
@@ -33,7 +33,7 @@ public:
 
 extern MeshadventurerBoard board;
 extern WRAPPER_CLASS radio_driver;
-extern AutoDiscoverRTCClock rtc_clock;
+extern PeerSyncRTCClock rtc_clock;
 extern MASensorManager sensors;
 
 #ifdef DISPLAY_CLASS

@@ -34,7 +34,7 @@ SensorManager sensors;
 #endif
 
 bool radio_init() {
-//  rtc_clock.begin(Wire);
+//  auto_rtc.begin(Wire);
 
   radio.setRfSwitchTable(rfswitch_pins, rfswitch_table);
 

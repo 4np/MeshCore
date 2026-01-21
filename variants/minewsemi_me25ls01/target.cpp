@@ -48,7 +48,7 @@ static const Module::RfSwitchMode_t rfswitch_table[] = {
 #endif
 
 bool radio_init() {
-  //rtc_clock.begin(Wire);
+  //auto_rtc.begin(Wire);
   
 #ifdef LR11X0_DIO3_TCXO_VOLTAGE
   float tcxo = LR11X0_DIO3_TCXO_VOLTAGE;

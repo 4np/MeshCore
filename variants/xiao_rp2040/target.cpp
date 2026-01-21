@@ -2,6 +2,7 @@
 
 #include <Arduino.h>
 #include <helpers/ArduinoHelpers.h>
+#include <helpers/RTCClockHelper.h>
 
 XiaoRP2040Board board;
 
@@ -9,8 +10,8 @@ RADIO_CLASS radio = new Module(P_LORA_NSS, P_LORA_DIO_1, P_LORA_RESET, P_LORA_BU
 
 WRAPPER_CLASS radio_driver(radio, board);
 
-VolatileRTCClock fallback_clock;
-AutoDiscoverRTCClock rtc_clock(fallback_clock);
+// Setup RTC clock with automatic peer synchronization
+SETUP_RTC_WITH_PEER_SYNC(VolatileRTCClock, fallback_clock)
 SensorManager sensors;
 
 #ifndef LORA_CR
@@ -18,7 +19,7 @@ SensorManager sensors;
 #endif
 
 bool radio_init() {
-  rtc_clock.begin(Wire);
+  auto_rtc.begin(Wire);
 
 #if defined(P_LORA_SCLK)
   spi.begin(P_LORA_SCLK, P_LORA_MISO, P_LORA_MOSI);
